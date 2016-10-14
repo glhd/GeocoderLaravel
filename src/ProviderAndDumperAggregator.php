@@ -8,6 +8,8 @@
  * @license    MIT License
  */
 
+use Doctrine\Common\Cache\Cache;
+use Geocoder\Provider\Provider;
 use Geocoder\ProviderAggregator;
 use Geocoder\Geocoder;
 use Geocoder\Dumper\Gpx;
@@ -16,6 +18,7 @@ use Geocoder\Dumper\Wkb;
 use Geocoder\Dumper\Wkt;
 use Geocoder\Dumper\GeoJson;
 use Geocoder\Laravel\Exceptions\InvalidDumperException;
+use Illuminate\Cache\CacheManager;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,10 +26,26 @@ use Illuminate\Support\Collection;
  */
 class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
 {
+    const CACHE_NAMESPACE = 'geocoder.';
+
     /**
      * @var AddressCollection
      */
     protected $results;
+
+    /**
+     * @var CacheManager
+     */
+    protected $cache;
+
+    /**
+     * @param int $limit
+     */
+    public function __construct($limit = Provider::MAX_RESULTS)
+    {
+        $this->cache = cache();
+        parent::__construct($limit);
+    }
 
     /**
      * @return array
@@ -50,7 +69,7 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
             'wkt' => Wkt::class,
         ]);
 
-        if (! $dumperClasses->has($dumper)) {
+        if (!$dumperClasses->has($dumper)) {
             $errorMessage = implode('', [
                 "The dumper specified ('{$dumper}') is invalid. Valid dumpers ",
                 "are: geojson, gpx, kml, wkb, wkt.",
@@ -73,7 +92,12 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
      */
     public function geocode($value)
     {
+        if ($cachedResults = $this->fetchFromCache($value)) {
+            return $cachedResults;
+        }
+
         $this->results = parent::geocode($value);
+        $this->storeInCache($value, $this->results);
 
         return $this;
     }
@@ -93,8 +117,79 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
      */
     public function reverse($latitude, $longitude)
     {
+        if ($cachedResults = $this->fetchFromCache("$latitude,$longitude")) {
+            return $cachedResults;
+        }
+
         $this->results = parent::reverse($latitude, $longitude);
+        $this->storeInCache("$latitude,$longitude", $this->results);
 
         return $this;
+    }
+
+    /**
+     * @param string $cacheKey
+     * @return \Illuminate\Contracts\Cache\Repository
+     */
+    protected function fetchFromCache($value)
+    {
+        if ($this->cacheEnabled()) {
+            return $this->cache->get($this->getCacheKey($value));
+        }
+    }
+
+    /**
+     * @param string $value
+     * @param mixed $results
+     */
+    protected function storeInCache($value, $results)
+    {
+        if ($this->cacheEnabled()) {
+            $this->cache->put($this->getCacheKey($value), $results, $this->getCacheTimeout());
+        }
+    }
+
+    /**
+     * @param $value
+     * @return string
+     */
+    protected function getCacheKey($value)
+    {
+        return static::CACHE_NAMESPACE . sha1($value);
+    }
+
+    /**
+     * @return CacheManager
+     */
+    public function getCache()
+    {
+        return $this->cache;
+    }
+
+    /**
+     * @param CacheManager $cache
+     * @return $this
+     */
+    public function setCache(CacheManager $cache)
+    {
+        $this->cache = $cache;
+
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function cacheEnabled()
+    {
+        return config('geocoder.cache.enabled') == true;
+    }
+
+    /**
+     * @return int
+     */
+    protected function getCacheTimeout()
+    {
+        return (int) config('geocoder.cache.timeout');
     }
 }
