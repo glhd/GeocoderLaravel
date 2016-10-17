@@ -93,11 +93,11 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
     public function geocode($value)
     {
         if ($cachedResults = $this->fetchFromCache($value)) {
-            return $cachedResults;
+            $this->results = $cachedResults;
+        } else {
+            $this->results = parent::geocode($value);
+            $this->storeInCache($value, $this->results);
         }
-
-        $this->results = parent::geocode($value);
-        $this->storeInCache($value, $this->results);
 
         return $this;
     }
