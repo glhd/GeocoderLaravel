@@ -73,6 +73,10 @@ return [
         ],
     ],
     'adapter'  => CurlHttpAdapter::class,
+    'cache' => [
+        'enabled' => false,
+        'timeout' => 60, // Minutes
+    ],
 ];
 ```
 
@@ -82,6 +86,12 @@ If you would like to make changes to the default configuration, publish and
 ```sh
 php artisan vendor:publish --provider="Geocoder\Laravel\GeocoderServiceProvider" --tags="config"
 ```
+
+### Cache
+
+By default the cache is disabled but you can enable it just setting `true` to the `geocoder.cache.enabled` configuration in `config/geocoder.php` file.
+
+You can also specify a cache timeout. By default it's set in 60 minutes. 
 
 ## Usage
 The service provider initializes the `geocoder` service, accessible via the
