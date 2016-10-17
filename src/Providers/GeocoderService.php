@@ -50,6 +50,7 @@ class GeocoderService extends ServiceProvider
 
         $this->app->singleton('geocoder', function () {
             $geocoder = new ProviderAndDumperAggregator();
+            $geocoder->setCache($this->app->cache);
             $geocoder->registerProviders(
                 $this->getProviders(collect(config('geocoder.providers')))
             );
