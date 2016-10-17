@@ -41,9 +41,9 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
     /**
      * @param int $limit
      */
-    public function __construct($limit = Provider::MAX_RESULTS)
+    public function __construct($limit = Provider::MAX_RESULTS, CacheManager $cache = null)
     {
-        $this->cache = cache();
+        $this->cache = $cache;
         parent::__construct($limit);
     }
 
@@ -149,6 +149,11 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
         }
     }
 
+    public function clearCache()
+    {
+        $this->cache->forget(static::CACHE_NAMESPACE . '*');
+    }
+
     /**
      * @param $value
      * @return string
@@ -190,6 +195,6 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
      */
     protected function getCacheTimeout()
     {
-        return (int) config('geocoder.cache.timeout');
+        return (int)config('geocoder.cache.timeout');
     }
 }
