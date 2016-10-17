@@ -40,4 +40,8 @@ return [
         ],
     ],
     'adapter'  => CurlHttpAdapter::class,
+    'cache' => [
+        'enabled' => true,
+        'timeout' => 60, // minutes
+    ],
 ];
