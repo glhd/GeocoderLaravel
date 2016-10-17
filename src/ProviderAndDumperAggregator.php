@@ -134,7 +134,9 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
     protected function fetchFromCache($value)
     {
         if ($this->cacheEnabled()) {
-            return $this->cache->get($this->getCacheKey($value));
+            if ($this->cache->has($this->getCacheKey($value))) {
+                return $this->cache->get($this->getCacheKey($value));
+            }
         }
     }
 
