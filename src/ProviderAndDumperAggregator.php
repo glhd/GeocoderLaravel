@@ -118,11 +118,11 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
     public function reverse($latitude, $longitude)
     {
         if ($cachedResults = $this->fetchFromCache("$latitude,$longitude")) {
-            return $cachedResults;
+            $this->results = $cachedResults;
+        } else {
+            $this->results = parent::reverse($latitude, $longitude);
+            $this->storeInCache("$latitude,$longitude", $this->results);
         }
-
-        $this->results = parent::reverse($latitude, $longitude);
-        $this->storeInCache("$latitude,$longitude", $this->results);
 
         return $this;
     }
@@ -151,9 +151,12 @@ class ProviderAndDumperAggregator extends ProviderAggregator implements Geocoder
         }
     }
 
+    /**
+     * Flushes the cache. The entire app cache!
+     */
     public function clearCache()
     {
-        $this->cache->forget(static::CACHE_NAMESPACE . '*');
+        $this->cache->flush();
     }
 
     /**
